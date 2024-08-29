@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Chatbot</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .image-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .image-container img {
+            max-width: 100%;
+            height: auto;
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gemini Chatbot</h1>
+    <div>
+        <input type="text" id="userInput" placeholder="Type your message here...">
+        <button onclick="sendMessage()">Send</button>
+        <button onclick="startRecognition()">🎤 Start Voice Recognition</button>
+    </div>
+    <div id="chatbox"></div>
+    <div>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" id="fileInput" name="file">
+            <button type="button" onclick="uploadFile()">Upload</button>
+        </form>
+    </div>
+    <div class="image-container" id="imageContainer"></div>
+
+    <script>
+        async function sendMessage() {
+            const userInput = document.getElementById('userInput').value;
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ prompt: userInput })
+            });
+            const data = await response.json();
+            document.getElementById('chatbox').innerHTML += `<p><strong>You:</strong> ${userInput}</p>`;
+            document.getElementById('chatbox').innerHTML += `<p><strong>Chatbot:</strong> ${data.response}</p>`;
+            document.getElementById('userInput').value = '';
+        }
+
+        async function uploadFile() {
+            const formData = new FormData(document.getElementById('uploadForm'));
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            document.getElementById('chatbox').innerHTML += `<p><strong>Chatbot:</strong> ${data.response}</p>`;
+        }
+
+        function startRecognition() {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.start();
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('userInput').value = transcript;
+                sendMessage();
+            };
+
+            recognition.onspeechend = function() {
+                recognition.stop();
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error detected: ' + event.error);
+            };
+        }
+    </script>
+</body>
+</html>
